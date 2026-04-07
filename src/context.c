@@ -1574,3 +1574,28 @@ ly_ctx_destroy(struct ly_ctx *ctx)
 
     free(ctx);
 }
+
+LIBYANG_API_DEF LY_ERR
+lys_internal_module_get_yang(const char *module_name, const char *revision, const char **data_yang)
+{
+    uint32_t i;
+
+    LY_CHECK_ARG_RET(NULL, module_name, data_yang, LY_EINVAL);
+
+    *data_yang = NULL;
+
+    for (i = 0; i < LY_INTERNAL_MODS_COUNT; ++i) {
+        if (strcmp(module_name, internal_modules[i].name)) {
+            continue;
+        }
+
+        if (revision && strcmp(revision, internal_modules[i].revision)) {
+            continue;
+        }
+
+        *data_yang = internal_modules[i].data;
+        break;
+    }
+
+    return *data_yang ? LY_SUCCESS : LY_ENOTFOUND;
+}
