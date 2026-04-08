@@ -1742,10 +1742,7 @@ lysp_schema_nodeid_match(const struct lysc_nodeid *nodeid, const struct lysp_mod
     if (nodeid_ext && !pnode_ext) {
         /* extension instance augment and standard node, will never match */
         return 0;
-    } else if (!nodeid_ext && pnode_ext) {
-        /* standard augment and extension instance node, will never match */
-        return 0;
-    }
+    } /* !nodeid_ext && pnode_ext is fine, standard nodes may target extension nodes */
 
     /* compare last node in the node ID */
     i = nodeid->count - 1;
