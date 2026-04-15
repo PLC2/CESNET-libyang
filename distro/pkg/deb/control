@@ -20,14 +20,6 @@ Multi-Arch: same
 Description: parser toolkit for IETF YANG data modeling - runtime
  Libyang implements functions to process schemas expressed in the
  YANG data modeling language defined by the IETF in RFCs 6020/7950.
- Schemas expressed in this language primarily describe configuration
- used by larger network equipment like routers and switches.
- .
- In addition to handling the schemas itself, the library also provides
- functions to process data described by the schemas.
- .
- The library is implemented in C and provides an API for other software
- to use in processing configurations.
 
 Package: libyang-dev
 Depends: libpcre2-dev,
@@ -40,14 +32,6 @@ Multi-Arch: same
 Description: parser toolkit for IETF YANG data modeling - development files
  Libyang implements functions to process schemas expressed in the
  YANG data modeling language defined by the IETF in RFCs 6020/7950.
- Schemas expressed in this language primarily describe configuration
- used by larger network equipment like routers and switches.
- .
- In addition to handling the schemas itself, the library also provides
- functions to process data described by the schemas.
- .
- This package contains the C headers, a pkgconfig file, and .so entry point
- for libyang.
 
 Package: libyang-tools
 Depends: libyang5 (= ${binary:Version}),
@@ -68,6 +52,4 @@ Package: libyang-modules
 Section: devel
 Architecture: all
 Description: parser toolkit for IETF YANG data modeling - YANG modules
- This package provides the IETF YANG modules used by libyang. These modules
- are embedded into libyang so this package is not necessary for libyang
- operation.
+ This package provides the internal IETF YANG modules used by libyang.
