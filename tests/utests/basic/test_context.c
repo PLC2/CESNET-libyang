@@ -1016,6 +1016,22 @@ test_free_parsed(void **state)
     UTEST_LYCTX = NULL;
 }
 
+static void
+test_all_implemented(void **state)
+{
+    struct lys_module *mod;
+
+    /* use own context with extra flags */
+    ly_ctx_destroy(UTEST_LYCTX);
+
+    assert_int_equal(LY_SUCCESS, ly_ctx_new(TESTS_SRC "/../modules", LY_CTX_DISABLE_SEARCHDIR_CWD | LY_CTX_ALL_IMPLEMENTED,
+            &UTEST_LYCTX));
+
+    ly_ctx_set_searchdir(UTEST_LYCTX, TESTS_SRC "/modules/yang");
+    mod = ly_ctx_load_module(UTEST_LYCTX, "top", NULL, NULL);
+    assert_non_null(mod);
+}
+
 int
 main(void)
 {
@@ -1029,6 +1045,7 @@ main(void)
         UTEST(test_set_priv_parsed),
         UTEST(test_explicit_compile),
         UTEST(test_free_parsed),
+        UTEST(test_all_implemented),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

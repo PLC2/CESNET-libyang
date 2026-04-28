@@ -563,10 +563,11 @@ LY_ERR _lys_set_implemented(struct lys_module *mod, const char **features, struc
  *
  * @param[in] ctx Context to use.
  * @param[in,out] main_set Set of dependency module sets.
- * @param[in] mod Optional only module whose dependency set is needed, otherwise all sets are created.
+ * @param[in] compile_set Optional set with specific modules (with to_compile flags) whose dependency sets are needed,
+ * otherwise sets for all the modules are created.
  * @return LY_ERR value.
  */
-LY_ERR lys_unres_dep_sets_create(struct ly_ctx *ctx, struct ly_set *main_set, struct lys_module *mod);
+LY_ERR lys_unres_dep_sets_create(struct ly_ctx *ctx, struct ly_set *main_set, const struct ly_set *compile_set);
 
 /**
  * @brief Revert changes stored in global compile context after a failed compilation.

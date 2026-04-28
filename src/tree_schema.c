@@ -1188,12 +1188,12 @@ cleanup:
 }
 
 LY_ERR
-lys_unres_dep_sets_create(struct ly_ctx *ctx, struct ly_set *main_set, struct lys_module *mod)
+lys_unres_dep_sets_create(struct ly_ctx *ctx, struct ly_set *main_set, const struct ly_set *compile_set)
 {
     LY_ERR ret = LY_SUCCESS;
-    struct lys_module *m;
+    struct lys_module *cur_mod, *m;
     struct ly_set *dep_set = NULL, *ctx_set = NULL, aux_set = {0};
-    uint32_t i;
+    uint32_t i, compile_i = 0;
     ly_bool found;
 
     assert(!main_set->count);
@@ -1204,22 +1204,35 @@ lys_unres_dep_sets_create(struct ly_ctx *ctx, struct ly_set *main_set, struct ly
     /* first create all dep sets with single modules */
     LY_CHECK_GOTO(ret = lys_unres_dep_sets_create_single(ctx_set, main_set), cleanup);
 
-    if (mod && !ly_set_contains(ctx_set, mod, NULL)) {
-        /* dep set for this module has already been created, nothing else to do */
-        goto cleanup;
-    }
-
     while (ctx_set->count) {
+        /* get the next module to create a dep set for */
+        if (compile_set) {
+            cur_mod = NULL;
+            while (compile_i < compile_set->count) {
+                m = compile_set->objs[compile_i];
+                ++compile_i;
+
+                if (m->to_compile && ly_set_contains(ctx_set, m, NULL)) {
+                    /* next module */
+                    cur_mod = m;
+                    break;
+                }
+            }
+
+            if (!cur_mod) {
+                /* have dep sets for all the modules that will be compiled now */
+                break;
+            }
+        } else {
+            /* just use first ctx mod */
+            cur_mod = ctx_set->objs[0];
+        }
+
         /* create new dep set */
         LY_CHECK_GOTO(ret = ly_set_new(&dep_set), cleanup);
 
-        if (mod) {
-            /* use the module create a dep set with the rest of its dependent modules */
-            LY_CHECK_GOTO(ret = lys_unres_dep_sets_create_mod_r(mod, ctx_set, dep_set, &aux_set), cleanup);
-        } else {
-            /* use first ctx mod to create a dep set with the rest of its dependent modules */
-            LY_CHECK_GOTO(ret = lys_unres_dep_sets_create_mod_r(ctx_set->objs[0], ctx_set, dep_set, &aux_set), cleanup);
-        }
+        /* use the module and create a dep set with the rest of its dependent modules */
+        LY_CHECK_GOTO(ret = lys_unres_dep_sets_create_mod_r(cur_mod, ctx_set, dep_set, &aux_set), cleanup);
         ly_set_erase(&aux_set, NULL);
         assert(dep_set->count);
 
@@ -1246,11 +1259,6 @@ lys_unres_dep_sets_create(struct ly_ctx *ctx, struct ly_set *main_set, struct ly
         /* add the dep set into main set */
         LY_CHECK_GOTO(ret = ly_set_add(main_set, dep_set, 1, NULL), cleanup);
         dep_set = NULL;
-
-        if (mod) {
-            /* we need dep set only for this module */
-            break;
-        }
     }
 
 #ifndef NDEBUG
@@ -1350,21 +1358,30 @@ lys_unres_glob_erase(struct lys_glob_unres *unres)
 LIBYANG_API_DEF LY_ERR
 lys_set_implemented(struct lys_module *mod, const char **features)
 {
-    LY_ERR ret = LY_SUCCESS;
+    LY_ERR rc = LY_SUCCESS;
     struct lys_glob_unres *unres = &mod->ctx->unres;
+    struct ly_set creat_set = {0};
 
     LY_CHECK_ARG_RET(NULL, mod, mod->parsed, !(mod->ctx->opts & LY_CTX_INT_IMMUTABLE), LY_EINVAL);
 
     /* implement */
-    ret = _lys_set_implemented(mod, features, unres);
-    LY_CHECK_GOTO(ret, cleanup);
+    rc = _lys_set_implemented(mod, features, unres);
+    LY_CHECK_GOTO(rc, cleanup);
+
+    if (!mod->to_compile) {
+        /* no changes to the module */
+        goto cleanup;
+    }
 
     if (!(mod->ctx->opts & LY_CTX_EXPLICIT_COMPILE)) {
+        /* compiling only this module */
+        LY_CHECK_GOTO(rc = ly_set_add(&creat_set, mod, 1, NULL), cleanup);
+
         /* create dep set for the module and mark all the modules that will be (re)compiled */
-        LY_CHECK_GOTO(ret = lys_unres_dep_sets_create(mod->ctx, &unres->dep_sets, mod), cleanup);
+        LY_CHECK_GOTO(rc = lys_unres_dep_sets_create(mod->ctx, &unres->dep_sets, &creat_set), cleanup);
 
         /* (re)compile the whole dep set (other dep sets will have no modules marked for compilation) */
-        LY_CHECK_GOTO(ret = lys_compile_depset_all(mod->ctx, unres), cleanup);
+        LY_CHECK_GOTO(rc = lys_compile_depset_all(mod->ctx, unres), cleanup);
 
         /* unres resolved */
         lys_unres_glob_erase(unres);
@@ -1374,11 +1391,12 @@ lys_set_implemented(struct lys_module *mod, const char **features)
     }
 
 cleanup:
-    if (ret) {
+    if (rc) {
         lys_unres_glob_revert(mod->ctx, unres);
         lys_unres_glob_erase(unres);
     }
-    return ret;
+    ly_set_erase(&creat_set, NULL);
+    return rc;
 }
 
 /**
@@ -2847,7 +2865,7 @@ lys_parse(struct ly_ctx *ctx, struct ly_in *in, LYS_INFORMAT format, const char 
 
     if (!(ctx->opts & LY_CTX_EXPLICIT_COMPILE)) {
         /* create dep set for the module and mark all the modules that will be (re)compiled */
-        LY_CHECK_GOTO(ret = lys_unres_dep_sets_create(ctx, &ctx->unres.dep_sets, mod), cleanup);
+        LY_CHECK_GOTO(ret = lys_unres_dep_sets_create(ctx, &ctx->unres.dep_sets, &ctx->unres.creating), cleanup);
 
         /* (re)compile the whole dep set (other dep sets will have no modules marked for compilation) */
         LY_CHECK_GOTO(ret = lys_compile_depset_all(ctx, &ctx->unres), cleanup);
