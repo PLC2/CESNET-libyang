@@ -78,10 +78,10 @@ lysp_last_revision(const struct lysp_module *pmod, const struct lysp_revision *r
         ctx = pmod->mod->ctx;
         if (pmod->is_submod) {
             name = ((struct lysp_submodule *)pmod)->name;
-            mod_str = "module";
+            mod_str = "submodule";
         } else {
             name = pmod->mod->name;
-            mod_str = "submodule";
+            mod_str = "module";
         }
     }
 
