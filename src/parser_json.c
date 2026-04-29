@@ -1430,6 +1430,65 @@ cleanup:
 }
 
 /**
+ * @brief Parse a single instance of a term node.
+ *
+ * @param[in] lydctx JSON data parser context.
+ * @param[in] snode Schema node corresponding to the member currently being processed in the context.
+ * @param[in] ext Extension instance of @p snode, if any.
+ * @param[in] type_hints Type hints to use.
+ * @param[in,out] parent Parent node, if any.
+ * @param[in,out] first_p First top-level node, is updated.
+ * @param[in,out] status JSON parser status, is updated.
+ * @param[out] node Parsed data (or opaque) node.
+ * @return LY_SUCCESS if a node was successfully parsed,
+ * @return LY_ENOT in case of invalid JSON encoding,
+ * @return LY_ERR on other errors.
+ */
+static LY_ERR
+lydjson_parse_instance_term(struct lyd_json_ctx *lydctx, const struct lysc_node *snode, const struct lysc_ext_instance *ext,
+        uint32_t type_hints, struct lyd_node *parent, struct lyd_node **first_p, enum LYJSON_PARSER_STATUS *status,
+        struct lyd_node **node)
+{
+    LY_ERR r, rc = LY_SUCCESS;
+
+    assert(snode->nodetype & LYD_NODE_TERM);
+
+    if ((*status != LYJSON_ARRAY) && (*status != LYJSON_NUMBER) && (*status != LYJSON_STRING) &&
+            (*status != LYJSON_FALSE) && (*status != LYJSON_TRUE) && (*status != LYJSON_NULL)) {
+        rc = LY_ENOT;
+        goto cleanup;
+    }
+
+    /* create terminal node */
+    r = lyd_parser_create_term((struct lyd_ctx *)lydctx, snode, parent, lydctx->jsonctx->value,
+            (uint64_t)lydctx->jsonctx->value_len * 8, &lydctx->jsonctx->dynamic, LY_VALUE_JSON, NULL,
+            type_hints, node);
+    LY_DPARSER_ERR_GOTO(r, rc = r, lydctx, cleanup);
+
+    /* insert, needs LYD_EXT flag */
+    if (ext) {
+        (*node)->flags |= LYD_EXT;
+    }
+    r = lyd_parser_node_insert(parent, first_p, NULL, lydctx->parse_opts, *node);
+    LY_CHECK_ERR_GOTO(r, rc = r, cleanup);
+
+    /* move JSON parser */
+    if (*status == LYJSON_ARRAY) {
+        /* only [null], 2 more moves are needed */
+        r = lyjson_ctx_next(lydctx->jsonctx, status);
+        LY_CHECK_ERR_GOTO(r, rc = r, cleanup);
+        assert(*status == LYJSON_NULL);
+
+        r = lyjson_ctx_next(lydctx->jsonctx, status);
+        LY_CHECK_ERR_GOTO(r, rc = r, cleanup);
+        assert(*status == LYJSON_ARRAY_CLOSED);
+    }
+
+cleanup:
+    return rc;
+}
+
+/**
  * @brief Parse a single instance of a node.
  *
  * @param[in] lydctx JSON data parser context. When the function returns, the context is in the same state
@@ -1463,36 +1522,9 @@ lydjson_parse_instance(struct lyd_json_ctx *lydctx, struct lyd_node *parent, str
             /* do not do anything if value is JSON 'null' */
             goto cleanup;
         } else if (snode->nodetype & LYD_NODE_TERM) {
-            if ((*status != LYJSON_ARRAY) && (*status != LYJSON_NUMBER) && (*status != LYJSON_STRING) &&
-                    (*status != LYJSON_FALSE) && (*status != LYJSON_TRUE) && (*status != LYJSON_NULL)) {
-                rc = LY_ENOT;
-                goto cleanup;
-            }
-
-            /* create terminal node */
-            r = lyd_parser_create_term((struct lyd_ctx *)lydctx, snode, parent, lydctx->jsonctx->value,
-                    (uint64_t)lydctx->jsonctx->value_len * 8, &lydctx->jsonctx->dynamic, LY_VALUE_JSON, NULL,
-                    type_hints, node);
+            /* create term node */
+            r = lydjson_parse_instance_term(lydctx, snode, ext, type_hints, parent, first_p, status, node);
             LY_DPARSER_ERR_GOTO(r, rc = r, lydctx, cleanup);
-
-            /* insert, needs LYD_EXT flag */
-            if (ext) {
-                (*node)->flags |= LYD_EXT;
-            }
-            r = lyd_parser_node_insert(parent, first_p, NULL, lydctx->parse_opts, *node);
-            LY_CHECK_ERR_GOTO(r, rc = r, cleanup);
-
-            /* move JSON parser */
-            if (*status == LYJSON_ARRAY) {
-                /* only [null], 2 more moves are needed */
-                r = lyjson_ctx_next(lydctx->jsonctx, status);
-                LY_CHECK_ERR_GOTO(r, rc = r, cleanup);
-                assert(*status == LYJSON_NULL);
-
-                r = lyjson_ctx_next(lydctx->jsonctx, status);
-                LY_CHECK_ERR_GOTO(r, rc = r, cleanup);
-                assert(*status == LYJSON_ARRAY_CLOSED);
-            }
         } else if (snode->nodetype & LYD_NODE_INNER) {
             /* create inner node */
             r = lydjson_parse_instance_inner(lydctx, snode, ext, parent, first_p, status, node);
