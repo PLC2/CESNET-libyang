@@ -4,7 +4,7 @@
  * @author Michal Vasko <mvasko@cesnet.cz>
  * @brief unit tests for JSON parser
  *
- * Copyright (c) 2019 - 2023 CESNET, z.s.p.o.
+ * Copyright (c) 2019 - 2026 CESNET, z.s.p.o.
  *
  * This source code is licensed under BSD 3-Clause License (the "License").
  * You may not use this file except in compliance with the License.
@@ -325,6 +325,10 @@ test_leaflist(void **state)
     CHECK_LYD_STRING(tree, LYD_PRINT_SHRINK | LYD_PRINT_SIBLINGS,
             "{\"a:ll1\":[1,2,3],\"@a:ll1\":[{\"a:hint\":1,\"a:hint\":10},null,{\"a:hint\":3}]}");
     lyd_free_all(tree);
+
+    /* invalid encoding */
+    PARSER_CHECK_ERROR("{\"a:ll1\":6}", LYD_PARSE_ONLY | LYD_PARSE_STRICT | LYD_PARSE_NO_STATE, 0, tree, LY_EVALID,
+            "Expecting JSON name/array of values but leaf-list \"ll1\" is represented in input data as name/number.", NULL, 1);
 
     /* missing referenced metadata node */
     PARSER_CHECK_ERROR("{\"@a:ll1\":[{\"a:hint\":1}]}", 0, LYD_VALIDATE_PRESENT, tree, LY_EVALID,

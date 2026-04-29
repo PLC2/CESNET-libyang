@@ -1713,7 +1713,7 @@ lydjson_subtree_r(struct lyd_json_ctx *lydctx, struct lyd_node *parent, struct l
                     r = lyjson_ctx_next(lydctx->jsonctx, &status);
                     LY_CHECK_ERR_GOTO(r, rc = r, cleanup);
                 } while (status == LYJSON_ARRAY_NEXT);
-            } else {
+            } else if (lydctx->parse_opts & LYD_PARSE_OPAQ) {
                 /* may still be an opaque node */
                 r = lydjson_parse_instance(lydctx, parent, first_p, snode, ext, name, name_len, prefix, prefix_len,
                         &status, &node);
@@ -1721,6 +1721,8 @@ lydjson_subtree_r(struct lyd_json_ctx *lydctx, struct lyd_node *parent, struct l
                     goto representation_error;
                 }
                 LY_DPARSER_ERR_GOTO(r, rc = r, lydctx, cleanup);
+            } else {
+                goto representation_error;
             }
             break;
         case LYS_LEAF:
