@@ -1358,8 +1358,16 @@ parse_revision(struct lysp_yang_ctx *ctx, struct lysp_revision **revs)
     size_t word_len;
     enum ly_stmt kw;
     struct lysp_revision *rev;
+    LY_ARRAY_COUNT_TYPE u, v;
 
     LY_ARRAY_NEW_RET(PARSER_CTX(ctx), *revs, rev, LY_EMEM);
+
+    /* revalidate the backward parent pointers from extensions */
+    LY_ARRAY_FOR(*revs, u) {
+        LY_ARRAY_FOR((*revs)[u].exts, v) {
+            (*revs)[u].exts[v].parent = &(*revs)[u];
+        }
+    }
 
     /* get value */
     LY_CHECK_RET(get_argument(ctx, Y_STR_ARG, NULL, &word, &buf, &word_len));
