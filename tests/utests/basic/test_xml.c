@@ -14,7 +14,9 @@
 #define _UTEST_MAIN_
 #include "utests.h"
 
-#define _POSIX_C_SOURCE 200809L /* strdup */
+#ifndef _POSIX_C_SOURCE
+# define _POSIX_C_SOURCE 200809L /* strdup */
+#endif
 
 #include <string.h>
 
