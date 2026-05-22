@@ -1496,7 +1496,7 @@ dfs_search:
                 ++pos;
             }
 
-            LYD_TREE_DFS_END(top_sibling, elem);
+            LYD_TREE_ANY_DFS_END(top_sibling, elem);
         }
 
         /* node found */
@@ -6956,7 +6956,7 @@ moveto_node_alldesc_child(struct lyxp_set *set, const struct lys_module *moveto_
         const char *ncname, uint32_t ncname_len, uint32_t options)
 {
     uint32_t i;
-    const struct lyd_node *next, *elem, *start;
+    const struct lyd_node *elem;
     struct lyxp_set ret_set;
     LY_ERR rc;
 
@@ -6976,47 +6976,22 @@ moveto_node_alldesc_child(struct lyxp_set *set, const struct lys_module *moveto_
     /* this loop traverses all the nodes in the set and adds/keeps only those that match qname */
     set_init(&ret_set, set);
     for (i = 0; i < set->used; ++i) {
-
-        /* TREE DFS */
-        start = set->val.nodes[i].node;
-        for (elem = next = start; elem; elem = next) {
+        LYD_TREE_DFS_BEGIN(set->val.nodes[i].node, elem) {
             rc = moveto_node_check(elem, LYXP_NODE_ELEM, set, ncname, ncname_len, moveto_mod, options);
             if (!rc) {
                 /* add matching node into result set */
                 set_insert_node(&ret_set, elem, 0, LYXP_NODE_ELEM, ret_set.used);
                 if (set_dup_node_check(set, elem, LYXP_NODE_ELEM, i)) {
                     /* the node is a duplicate, we'll process it later in the set */
-                    goto skip_children;
+                    LYD_TREE_DFS_continue = 1;
                 }
             } else if (rc == LY_EINCOMPLETE) {
                 return rc;
             } else if (rc == LY_EINVAL) {
-                goto skip_children;
+                LYD_TREE_DFS_continue = 1;
             }
 
-            /* TREE DFS NEXT ELEM */
-            /* select element for the next run - children first */
-            next = lyd_child_any(elem);
-            if (!next) {
-skip_children:
-                /* no children, so try siblings, but only if it's not the start,
-                 * that is considered to be the root and it's siblings are not traversed */
-                if (elem != start) {
-                    next = elem->next;
-                } else {
-                    break;
-                }
-            }
-            while (!next) {
-                /* no siblings, go back through the parents */
-                if (elem->parent == start) {
-                    /* we are done, no next element to process */
-                    break;
-                }
-                /* parent is already processed, go to its sibling */
-                elem = elem->parent;
-                next = elem->next;
-            }
+            LYD_TREE_ANY_DFS_END(set->val.nodes[i].node, elem);
         }
     }
 

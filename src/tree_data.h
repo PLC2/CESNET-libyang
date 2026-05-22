@@ -420,26 +420,14 @@ struct rb_node;
          (ELEM) = (LYD_TREE_DFS_next), LYD_TREE_DFS_continue = 0)
 
 /**
- * @brief Macro to iterate via all elements in a tree. This is the closing part
- * to the #LYD_TREE_DFS_BEGIN - they always have to be used together.
- *
- * Returns children using ::lyd_child().
- *
- * Use the same parameters for #LYD_TREE_DFS_BEGIN and #LYD_TREE_DFS_END. While
- * START can be any of the lyd_node* types, ELEM variable must be a pointer
- * to the generic struct lyd_node.
- *
- * Use with closing curly bracket '}' after the macro.
- *
- * @param START Pointer to the starting element processed first.
- * @param ELEM Iterator intended for use in the block.
+ * @brief Internal DFS END macro not to be used directly.
  */
-#define LYD_TREE_DFS_END(START, ELEM) \
+#define _LYD_TREE_DFS_END(START, ELEM, FUNC) \
     /* select element for the next run - children first */ \
     if (LYD_TREE_DFS_continue) { \
         (LYD_TREE_DFS_next) = NULL; \
     } else { \
-        (LYD_TREE_DFS_next) = lyd_child(ELEM); \
+        (LYD_TREE_DFS_next) = FUNC(ELEM); \
     }\
     if (!(LYD_TREE_DFS_next)) { \
         /* no children */ \
@@ -460,6 +448,42 @@ struct rb_node;
         } \
         (LYD_TREE_DFS_next) = (ELEM)->next; \
     } }
+
+/**
+ * @brief Macro to iterate via all elements in a tree. This is the closing part
+ * to the #LYD_TREE_DFS_BEGIN - they always have to be used together.
+ *
+ * Returns children using ::lyd_child().
+ *
+ * Use the same parameters for #LYD_TREE_DFS_BEGIN and #LYD_TREE_DFS_END. While
+ * START can be any of the lyd_node* types, ELEM variable must be a pointer
+ * to the generic struct lyd_node.
+ *
+ * Use with closing curly bracket '}' after the macro.
+ *
+ * @param START Pointer to the starting element processed first.
+ * @param ELEM Iterator intended for use in the block.
+ */
+#define LYD_TREE_DFS_END(START, ELEM) \
+    _LYD_TREE_DFS_END(START, ELEM, lyd_child)
+
+/**
+ * @brief Macro to iterate via all elements in a tree including anyxml and anydata children. This is the closing part
+ * to the #LYD_TREE_DFS_BEGIN - they always have to be used together.
+ *
+ * Returns children using ::lyd_child_any().
+ *
+ * Use the same parameters for #LYD_TREE_DFS_BEGIN and #LYD_TREE_ANY_DFS_END. While
+ * START can be any of the lyd_node* types, ELEM variable must be a pointer
+ * to the generic struct lyd_node.
+ *
+ * Use with closing curly bracket '}' after the macro.
+ *
+ * @param START Pointer to the starting element processed first.
+ * @param ELEM Iterator intended for use in the block.
+ */
+#define LYD_TREE_ANY_DFS_END(START, ELEM) \
+    _LYD_TREE_DFS_END(START, ELEM, lyd_child_any)
 
 /**
  * @brief Macro to iterate via all schema node data instances in data siblings.
