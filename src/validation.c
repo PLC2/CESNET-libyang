@@ -1007,12 +1007,13 @@ cleanup:
  * @param[in] first First data sibling of the non-existing node.
  * @param[in] parent Data parent of the non-existing node.
  * @param[in] snode Schema node of the non-existing node.
+ * @param[in] val_opts Validation options.
  * @param[out] disabled First when that evaluated false, if any.
  * @return LY_ERR value.
  */
 static LY_ERR
 lyd_validate_dummy_when(const struct lyd_node *first, const struct lyd_node *parent, const struct lysc_node *snode,
-        const struct lysc_when **disabled)
+        uint32_t val_opts, const struct lysc_when **disabled)
 {
     LY_ERR rc = LY_SUCCESS;
     struct lyd_node *tree, *dummy = NULL;
@@ -1053,6 +1054,11 @@ lyd_validate_dummy_when(const struct lyd_node *first, const struct lyd_node *par
 
     /* evaluate all when */
     rc = lyd_validate_node_when(tree, dummy, snode, xp_opts, disabled);
+    if ((rc == LY_EINCOMPLETE) && (val_opts & LYD_VALIDATE_MULTI_ERROR)) {
+        /* cannot evaluate properly, just ignore */
+        rc = LY_SUCCESS;
+    }
+
     if (rc == LY_EINCOMPLETE) {
         /* all other when must be resolved by now */
         LOGINT(snode->module->ctx);
@@ -1100,7 +1106,7 @@ lyd_validate_mandatory(const struct lyd_node *first, const struct lyd_node *pare
     disabled = NULL;
     if (lysc_has_when(snode)) {
         /* if there are any when conditions, they must be true for a validation error */
-        LY_CHECK_RET(lyd_validate_dummy_when(first, parent, snode, &disabled));
+        LY_CHECK_RET(lyd_validate_dummy_when(first, parent, snode, val_opts, &disabled));
     }
 
     if (!disabled) {
@@ -1177,7 +1183,7 @@ lyd_validate_minmax(const struct lyd_node *first, const struct lyd_node *parent,
         disabled = NULL;
         if (lysc_has_when(snode)) {
             /* if there are any when conditions, they must be true for a validation error */
-            LY_CHECK_RET(lyd_validate_dummy_when(first, parent, snode, &disabled));
+            LY_CHECK_RET(lyd_validate_dummy_when(first, parent, snode, val_opts, &disabled));
         }
 
         if (disabled) {
