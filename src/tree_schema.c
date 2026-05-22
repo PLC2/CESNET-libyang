@@ -565,6 +565,12 @@ lys_find_child_node(const struct ly_ctx *ctx, const struct lysc_node *parent, co
 
     /* look for a standard schema node */
     if (mod && mod->implemented) {
+        if (!mod->compiled) {
+            assert(mod->to_compile && (ctx->opts & LY_CTX_EXPLICIT_COMPILE));
+            LOGERR(ctx, LY_EINVAL, "Context needs to be explicitly compiled.");
+            return LY_EINVAL;
+        }
+
         while ((node = lys_getnext(node, parent, mod->compiled, options))) {
             /* check module */
             if (node->module != mod) {
