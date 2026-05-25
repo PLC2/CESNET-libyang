@@ -390,7 +390,7 @@ struct rb_node;
 
 /**
  * @brief Macro to iterate via all elements in a data tree. This is the opening part
- * to the #LYD_TREE_DFS_END - they always have to be used together.
+ * to the #LYD_TREE_DFS_END or #LYD_TREE_ANY_DFS_END - either must always be used with this macro.
  *
  * The function follows deep-first search algorithm:
  * <pre>
