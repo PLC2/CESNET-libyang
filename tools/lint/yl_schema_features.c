@@ -65,7 +65,8 @@ parse_features(const char *fstring, struct ly_set *fset)
 {
     struct yl_schema_features *rec = NULL;
     uint32_t count;
-    char *p, **fp;
+    const char *p;
+    char **fp;
 
     rec = calloc(1, sizeof *rec);
     if (!rec) {
@@ -84,7 +85,7 @@ parse_features(const char *fstring, struct ly_set *fset)
     count = 0;
     while (p) {
         size_t len = 0;
-        char *token = p + 1;
+        const char *token = p + 1;
 
         p = strchr(token, ',');
         if (!p) {
