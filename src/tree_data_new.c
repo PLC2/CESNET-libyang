@@ -541,7 +541,7 @@ lyd_new_list(struct lyd_node *parent, const struct lys_module *module, const cha
     LY_CHECK_ARG_RET(ctx, parent || module, parent || node, name, LY_EINVAL);
     LY_CHECK_CTX_EQUAL_RET(__func__, parent ? LYD_CTX(parent) : NULL, module ? module->ctx : NULL, LY_EINVAL);
     LY_CHECK_RET(lyd_new_val_get_format(options, &format));
-    LY_CHECK_ARG_RET(ctx, !(store_only && (format == LY_VALUE_CANON || format == LY_VALUE_LYB)), LY_EINVAL);
+    LY_CHECK_ARG_RET(ctx, !(store_only && (format == LY_VALUE_CANON)), LY_EINVAL);
 
     /* create the list node */
     LY_CHECK_RET(_lyd_new_list_node(ctx, parent, module, name, options, &ret));
@@ -549,13 +549,9 @@ lyd_new_list(struct lyd_node *parent, const struct lys_module *module, const cha
     va_start(ap, node);
     /* create and insert all the keys */
     for (key_s = lysc_node_child(ret->schema); key_s && (key_s->flags & LYS_KEY); key_s = key_s->next) {
-        if (format == LY_VALUE_LYB) {
-            key_val = va_arg(ap, const void *);
-            key_size_bits = va_arg(ap, uint32_t);
-        } else {
-            key_val = va_arg(ap, const char *);
-            key_size_bits = key_val ? strlen((char *)key_val) * 8 : 0;
-        }
+        key_val = va_arg(ap, const char *);
+        key_size_bits = key_val ? strlen((char *)key_val) * 8 : 0;
+
         rc = lyd_create_term(key_s, parent, key_val, key_size_bits, 0, store_only, NULL, format, NULL, LYD_HINT_DATA,
                 NULL, &key);
         LY_CHECK_GOTO(rc, cleanup);
@@ -642,9 +638,9 @@ lyd_new_list3(struct lyd_node *parent, const struct lys_module *module, const ch
     LY_VALUE_FORMAT format;
 
     LY_CHECK_RET(lyd_new_val_get_format(options, &format));
-    LY_CHECK_ARG_RET(ctx, parent || module, parent || node, name, (format != LY_VALUE_LYB) || value_sizes_bits, LY_EINVAL);
+    LY_CHECK_ARG_RET(ctx, parent || module, parent || node, name, LY_EINVAL);
     LY_CHECK_CTX_EQUAL_RET(__func__, parent ? LYD_CTX(parent) : NULL, module ? module->ctx : NULL, LY_EINVAL);
-    LY_CHECK_ARG_RET(ctx, !(store_only && (format == LY_VALUE_CANON || format == LY_VALUE_LYB)), LY_EINVAL);
+    LY_CHECK_ARG_RET(ctx, !(store_only && (format == LY_VALUE_CANON)), LY_EINVAL);
 
     /* create the list node */
     LY_CHECK_RET(_lyd_new_list_node(ctx, parent, module, name, options, &ret));
@@ -710,7 +706,7 @@ _lyd_new_term(struct lyd_node *parent, const struct lys_module *module, const ch
     LY_CHECK_ARG_RET(ctx, parent || module, parent || node, name, LY_EINVAL);
     LY_CHECK_CTX_EQUAL_RET(__func__, parent ? LYD_CTX(parent) : NULL, module ? module->ctx : NULL, LY_EINVAL);
     LY_CHECK_RET(lyd_new_val_get_format(options, &format));
-    LY_CHECK_ARG_RET(ctx, !(store_only && (format == LY_VALUE_CANON || format == LY_VALUE_LYB)), LY_EINVAL);
+    LY_CHECK_ARG_RET(ctx, !(store_only && (format == LY_VALUE_CANON)), LY_EINVAL);
 
     if (!module) {
         module = parent->schema->module;

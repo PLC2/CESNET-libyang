@@ -139,12 +139,12 @@ test_top_level(void **state)
     assert_int_equal(lyd_new_list3(NULL, mod, "l1", (const void **)key_vals, val_lens, LYD_NEW_VAL_CANON, &node), LY_SUCCESS);
     lyd_free_tree(node);
     assert_int_equal(lyd_new_list3(NULL, mod, "l1", (const void **)key_vals, val_lens, LYD_NEW_VAL_CANON | LYD_NEW_VAL_STORE_ONLY, &node), LY_EINVAL);
-    CHECK_LOG_CTX("Invalid argument !(store_only && (format == LY_VALUE_CANON || format == LY_VALUE_LYB)) (lyd_new_list3()).", NULL, 0);
+    CHECK_LOG_CTX("Invalid argument !(store_only && (format == LY_VALUE_CANON)) (lyd_new_list3()).", NULL, 0);
 
     assert_int_equal(lyd_new_list(NULL, mod, "l1", LYD_NEW_VAL_CANON, &node, "val_a", "val_b"), LY_SUCCESS);
     lyd_free_tree(node);
     assert_int_equal(lyd_new_list(NULL, mod, "l1", LYD_NEW_VAL_CANON | LYD_NEW_VAL_STORE_ONLY, &node, "val_a", "val_b"), LY_EINVAL);
-    CHECK_LOG_CTX("Invalid argument !(store_only && (format == LY_VALUE_CANON || format == LY_VALUE_LYB)) (lyd_new_list()).", NULL, 0);
+    CHECK_LOG_CTX("Invalid argument !(store_only && (format == LY_VALUE_CANON)) (lyd_new_list()).", NULL, 0);
 
     /* leaf */
     assert_int_equal(lyd_new_term(NULL, mod, "foo", "[a='a'][b='b'][c='c']", 0, &node), LY_EVALID);
@@ -159,7 +159,7 @@ test_top_level(void **state)
     assert_int_equal(lyd_new_term(NULL, mod, "foo", "25", LYD_NEW_VAL_CANON, &node), LY_SUCCESS);
     lyd_free_tree(node);
     assert_int_equal(lyd_new_term(NULL, mod, "foo", "25", LYD_NEW_VAL_CANON | LYD_NEW_VAL_STORE_ONLY, &node), LY_EINVAL);
-    CHECK_LOG_CTX("Invalid argument !(store_only && (format == LY_VALUE_CANON || format == LY_VALUE_LYB)) (_lyd_new_term()).", NULL, 0);
+    CHECK_LOG_CTX("Invalid argument !(store_only && (format == LY_VALUE_CANON)) (_lyd_new_term()).", NULL, 0);
 
     /* leaf-list */
     assert_int_equal(lyd_new_term(NULL, mod, "ll", "ahoy", 0, &node), LY_SUCCESS);
