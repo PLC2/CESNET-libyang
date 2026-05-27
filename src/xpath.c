@@ -7387,6 +7387,38 @@ cleanup:
 }
 
 /**
+ * @brief Compare 2 XPath numbers.
+ *
+ * @param[in] set1 Set with the first number.
+ * @param[in] set2 Set with the second number.
+ * @param[out] cmp Result of the comparison.
+ * @return LY_ERR value.
+ */
+static LY_ERR
+moveto_num_cmp(const struct lyxp_set *set1, const struct lyxp_set *set2, int *cmp)
+{
+    LY_ERR rc = LY_SUCCESS;
+    char *str1 = NULL, *str2 = NULL;
+    int r;
+
+    assert(set1->type == LYXP_SET_NUMBER);
+    assert(set2->type == LYXP_SET_NUMBER);
+
+    /* compare doubles using strings to avoid precision issues */
+    r = asprintf(&str1, "%Lf", set1->val.num);
+    LY_CHECK_ERR_GOTO(r == -1, LOGMEM(set1->ctx); rc = LY_EMEM, cleanup);
+    r = asprintf(&str2, "%Lf", set2->val.num);
+    LY_CHECK_ERR_GOTO(r == -1, LOGMEM(set1->ctx); rc = LY_EMEM, cleanup);
+
+    *cmp = strcmp(str1, str2);
+
+cleanup:
+    free(str1);
+    free(str2);
+    return rc;
+}
+
+/**
  * @brief Move context @p set1 to the result of a comparison. Handles '=', '!=', '<=', '<', '>=', or '>'.
  *        Result is LYXP_SET_BOOLEAN. Indirectly context position aware.
  *
@@ -7431,6 +7463,7 @@ moveto_op_comp(struct lyxp_set *set1, struct lyxp_set *set2, const char *op, ly_
      * STRING + BOOLEAN = NUMBER + NUMBER      /(1 NUMBER) 2 NUMBER
      */
     uint32_t i;
+    int cmp;
     LY_ERR rc;
 
     /* iterative evaluation with node-sets */
@@ -7487,7 +7520,8 @@ moveto_op_comp(struct lyxp_set *set1, struct lyxp_set *set2, const char *op, ly_
         if (set1->type == LYXP_SET_BOOLEAN) {
             *result = (set1->val.bln == set2->val.bln);
         } else if (set1->type == LYXP_SET_NUMBER) {
-            *result = (set1->val.num == set2->val.num);
+            LY_CHECK_RET(moveto_num_cmp(set1, set2, &cmp));
+            *result = (cmp ? 0 : 1);
         } else {
             assert(set1->type == LYXP_SET_STRING);
             *result = strcmp(set1->val.str, set2->val.str) ? 0 : 1;
@@ -7496,24 +7530,26 @@ moveto_op_comp(struct lyxp_set *set1, struct lyxp_set *set2, const char *op, ly_
         if (set1->type == LYXP_SET_BOOLEAN) {
             *result = (set1->val.bln != set2->val.bln);
         } else if (set1->type == LYXP_SET_NUMBER) {
-            *result = (set1->val.num != set2->val.num);
+            LY_CHECK_RET(moveto_num_cmp(set1, set2, &cmp));
+            *result = (cmp ? 1 : 0);
         } else {
             assert(set1->type == LYXP_SET_STRING);
             *result = strcmp(set1->val.str, set2->val.str) ? 1 : 0;
         }
     } else {
-        assert(set1->type == LYXP_SET_NUMBER);
+        LY_CHECK_RET(moveto_num_cmp(set1, set2, &cmp));
+
         if (op[0] == '<') {
             if (op[1] == '=') {
-                *result = (set1->val.num <= set2->val.num);
+                *result = ((cmp <= 0) ? 1 : 0);
             } else {
-                *result = (set1->val.num < set2->val.num);
+                *result = ((cmp < 0) ? 1 : 0);
             }
         } else {
             if (op[1] == '=') {
-                *result = (set1->val.num >= set2->val.num);
+                *result = ((cmp >= 0) ? 1 : 0);
             } else {
-                *result = (set1->val.num > set2->val.num);
+                *result = ((cmp > 0) ? 1 : 0);
             }
         }
     }
