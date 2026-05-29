@@ -594,7 +594,7 @@ static void
 test_data_leafref_nodes(void **state)
 {
     struct lyd_node *tree, *iter;
-    struct lyd_node_term *target_node = NULL, *leafref_node, *leafref_node2;
+    struct lyd_node_term *target_node = NULL, *leafref_node = NULL, *leafref_node2 = NULL;
     const struct lyd_leafref_links_rec *rec;
     const char *schema, *data, *value;
 
