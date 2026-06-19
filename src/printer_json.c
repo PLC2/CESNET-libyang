@@ -366,7 +366,7 @@ json_print_member2(struct jsonpr_ctx *pctx, const struct lyd_node *parent, LY_VA
 
     /* print the member, strcmp because node prefix is in the schema dict, module_name in data dict */
     node_prefix(parent, parent ? parent->schema : NULL, &pmod_name, NULL);
-    if (module_name && (!parent || strcmp(pmod_name, module_name))) {
+    if (module_name && (!parent || !pmod_name || strcmp(pmod_name, module_name))) {
         ly_print_(pctx->out, "%*s\"%s%s:%s\":%s", INDENT, is_attr ? "@" : "", module_name, name_str, DO_FORMAT ? " " : "");
     } else {
         ly_print_(pctx->out, "%*s\"%s%s\":%s", INDENT, is_attr ? "@" : "", name_str, DO_FORMAT ? " " : "");
