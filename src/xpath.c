@@ -3281,11 +3281,9 @@ lyxp_expr_dup(const struct ly_ctx *ctx, const struct lyxp_expr *exp, uint32_t st
         LY_CHECK_ERR_GOTO(!dup->tok_pos, LOGMEM(ctx); ret = LY_EMEM, cleanup);
         memcpy(dup->tok_pos, exp->tok_pos + start_idx, used * sizeof *dup->tok_pos);
 
-        if (start_idx) {
-            /* fix the indices in the expression */
-            for (i = 0; i < used; ++i) {
-                dup->tok_pos[i] -= expr_start - exp->expr;
-            }
+        /* fix the indices in the expression */
+        for (i = 0; i < used; ++i) {
+            dup->tok_pos[i] -= expr_start - exp->expr;
         }
 
         dup->tok_len = malloc(used * sizeof *dup->tok_len);
