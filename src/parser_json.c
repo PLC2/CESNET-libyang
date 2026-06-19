@@ -584,17 +584,17 @@ lydjson_metadata_finish(struct lyd_json_ctx *lydctx, struct lyd_node **first_p)
 {
     LY_ERR ret = LY_SUCCESS;
     struct lyd_node *node, *attr, *next, *meta_iter;
-    uint64_t instance = 0;
-    const char *prev = NULL;
+    struct lyd_node_opaq *meta_container;
+    struct lys_module *mod;
+    uint64_t instance = 0, match;
+    uint32_t hints, name_len, prefix_len;
+    const char *prev = NULL, *name, *prefix, *module_name, *value;
+    const struct lysc_node *snode;
+    ly_bool is_attr;
 
     /* finish linking metadata */
     LY_LIST_FOR_SAFE(*first_p, next, attr) {
-        struct lyd_node_opaq *meta_container = (struct lyd_node_opaq *)attr;
-        uint64_t match = 0;
-        ly_bool is_attr;
-        const char *name, *prefix;
-        uint32_t name_len, prefix_len;
-        const struct lysc_node *snode;
+        meta_container = (struct lyd_node_opaq *)attr;
 
         if (attr->schema || (meta_container->name.name[0] != '@')) {
             /* not an opaq metadata node */
@@ -611,6 +611,7 @@ lydjson_metadata_finish(struct lyd_json_ctx *lydctx, struct lyd_node **first_p)
         }
 
         /* find the corresponding data node */
+        match = 0;
         LY_LIST_FOR(*first_p, node) {
             if (!node->schema) {
                 /* opaq node - we are going to put into it just a generic attribute. */
@@ -633,12 +634,16 @@ lydjson_metadata_finish(struct lyd_json_ctx *lydctx, struct lyd_node **first_p)
 
                 LY_LIST_FOR(meta_container->child, meta_iter) {
                     /* convert opaq node to a attribute of the opaq node */
-                    struct lyd_node_opaq *meta = (struct lyd_node_opaq *)meta_iter;
+                    name = LYD_NAME(meta_iter);
+                    prefix = (!meta_iter->schema) ? ((struct lyd_node_opaq *)meta_iter)->name.prefix : NULL;
+                    module_name = (!meta_iter->schema) ? ((struct lyd_node_opaq *)meta_iter)->name.module_name :
+                            meta_iter->schema->module->name;
+                    value = lyd_get_value(meta_iter);
+                    hints = (!meta_iter->schema) ? ((struct lyd_node_opaq *)meta_iter)->hints : 0;
 
-                    ret = lyd_create_attr(node, NULL, lydctx->jsonctx->ctx, meta->name.name, strlen(meta->name.name),
-                            meta->name.prefix, ly_strlen(meta->name.prefix), meta->name.module_name,
-                            ly_strlen(meta->name.module_name), meta->value, ly_strlen(meta->value), NULL, LY_VALUE_JSON,
-                            NULL, meta->hints);
+                    ret = lyd_create_attr(node, NULL, lydctx->jsonctx->ctx, name, strlen(name), prefix,
+                            ly_strlen(prefix), module_name, ly_strlen(module_name), value, ly_strlen(value), NULL,
+                            LY_VALUE_JSON, NULL, hints);
                     LY_CHECK_GOTO(ret, cleanup);
                 }
 
@@ -663,25 +668,29 @@ lydjson_metadata_finish(struct lyd_json_ctx *lydctx, struct lyd_node **first_p)
                 }
 
                 LY_LIST_FOR(meta_container->child, meta_iter) {
-                    /* convert opaq node to a metadata of the node */
-                    struct lyd_node_opaq *meta = (struct lyd_node_opaq *)meta_iter;
-                    struct lys_module *mod = NULL;
+                    /* convert node to a metadata of the node */
+                    name = LYD_NAME(meta_iter);
+                    prefix = (!meta_iter->schema) ? ((struct lyd_node_opaq *)meta_iter)->name.prefix : NULL;
+                    value = lyd_get_value(meta_iter);
+                    hints = (!meta_iter->schema) ? ((struct lyd_node_opaq *)meta_iter)->hints : 0;
 
-                    mod = ly_ctx_get_module_implemented(lydctx->jsonctx->ctx, meta->name.prefix);
+                    if (prefix) {
+                        mod = ly_ctx_get_module_implemented(lydctx->jsonctx->ctx, prefix);
+                    } else {
+                        mod = meta_iter->schema->module;
+                    }
                     if (mod) {
-                        ret = lyd_parser_create_meta((struct lyd_ctx *)lydctx, node, NULL, mod, meta->name.name,
-                                strlen(meta->name.name), meta->value, ly_strlen(meta->value) * 8, NULL, LY_VALUE_JSON,
-                                NULL, meta->hints, node->schema, node);
+                        ret = lyd_parser_create_meta((struct lyd_ctx *)lydctx, node, NULL, mod, name, strlen(name),
+                                value, ly_strlen(value) * 8, NULL, LY_VALUE_JSON, NULL, hints, node->schema, node);
                         LY_CHECK_GOTO(ret, cleanup);
                     } else if (lydctx->parse_opts & LYD_PARSE_STRICT) {
-                        if (meta->name.prefix) {
+                        if (prefix) {
                             LOGVAL(lydctx->jsonctx->ctx, attr, LYVE_REFERENCE,
                                     "Unknown (or not implemented) YANG module \"%s\" of metadata \"%s%s%s\".",
-                                    meta->name.prefix, meta->name.prefix, ly_strlen(meta->name.prefix) ? ":" : "",
-                                    meta->name.name);
+                                    prefix, prefix, ly_strlen(prefix) ? ":" : "", name);
                         } else {
                             LOGVAL(lydctx->jsonctx->ctx, attr, LYVE_REFERENCE, "Missing YANG module of metadata \"%s\".",
-                                    meta->name.name);
+                                    name);
                         }
                         ret = LY_EVALID;
                         goto cleanup;
