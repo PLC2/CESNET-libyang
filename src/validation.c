@@ -357,6 +357,7 @@ lyd_validate_autodel_node_del(struct lyd_node **first, struct lyd_node *del, con
         }
     }
 
+#ifndef NDEBUG
     if (node_when && node_when->count) {
         /* remove nested from node_when set */
         LYD_TREE_DFS_BEGIN(del, iter) {
@@ -367,6 +368,9 @@ lyd_validate_autodel_node_del(struct lyd_node **first, struct lyd_node *del, con
             LYD_TREE_DFS_END(del, iter);
         }
     }
+#else
+    (void)node_when;
+#endif
 
     if (node_types && node_types->count) {
         /* remove from node_types set */
