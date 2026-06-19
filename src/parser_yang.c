@@ -1672,8 +1672,17 @@ static LY_ERR
 parse_restrs(struct lysp_yang_ctx *ctx, enum ly_stmt restr_kw, struct lysp_restr **restrs)
 {
     struct lysp_restr *restr;
+    LY_ARRAY_COUNT_TYPE u, v;
 
     LY_ARRAY_NEW_RET(PARSER_CTX(ctx), *restrs, restr, LY_EMEM);
+
+    /* revalidate the backward parent pointers from extensions */
+    LY_ARRAY_FOR(*restrs, u) {
+        LY_ARRAY_FOR((*restrs)[u].exts, v) {
+            (*restrs)[u].exts[v].parent = &(*restrs)[u];
+        }
+    }
+
     return parse_restr(ctx, restr_kw, restr);
 }
 
@@ -2208,8 +2217,16 @@ parse_type_pattern(struct lysp_yang_ctx *ctx, struct lysp_restr **patterns)
     size_t word_len;
     enum ly_stmt kw;
     struct lysp_restr *restr;
+    LY_ARRAY_COUNT_TYPE u, v;
 
     LY_ARRAY_NEW_RET(PARSER_CTX(ctx), *patterns, restr, LY_EMEM);
+
+    /* revalidate the backward parent pointers from extensions */
+    LY_ARRAY_FOR(*patterns, u) {
+        LY_ARRAY_FOR((*patterns)[u].exts, v) {
+            (*patterns)[u].exts[v].parent = &(*patterns)[u];
+        }
+    }
 
     /* get value */
     LY_CHECK_RET(get_argument(ctx, Y_STR_ARG, &restr->arg.flags, &word, &buf, &word_len));
@@ -2765,7 +2782,7 @@ parse_refine(struct lysp_yang_ctx *ctx, struct lysp_refine **refines)
 
     LY_ARRAY_NEW_RET(PARSER_CTX(ctx), *refines, rf, LY_EMEM);
 
-    /* revalidate the backward parent pointers from extensions. The realloc within LY_ARRAY_NEW_RET is making previous entries invalid */
+    /* revalidate the backward parent pointers from extensions */
     LY_ARRAY_FOR(*refines, u) {
         LY_ARRAY_FOR((*refines)[u].exts, v) {
             (*refines)[u].exts[v].parent = &(*refines)[u];
@@ -2843,7 +2860,7 @@ parse_typedef(struct lysp_yang_ctx *ctx, struct lysp_node *parent, struct lysp_t
 
     LY_ARRAY_NEW_RET(PARSER_CTX(ctx), *typedefs, tpdf, LY_EMEM);
 
-    /* revalidate the backward parent pointers from extensions. The realloc within LY_ARRAY_NEW_RET is making previous entries invalid */
+    /* revalidate the backward parent pointers from extensions */
     LY_ARRAY_FOR(*typedefs, u) {
         LY_ARRAY_FOR((*typedefs)[u].exts, v) {
             (*typedefs)[u].exts[v].parent = &(*typedefs)[u];
@@ -3915,8 +3932,16 @@ parse_extension(struct lysp_yang_ctx *ctx, struct lysp_ext **extensions)
     size_t word_len;
     enum ly_stmt kw;
     struct lysp_ext *ex;
+    LY_ARRAY_COUNT_TYPE u, v;
 
     LY_ARRAY_NEW_RET(PARSER_CTX(ctx), *extensions, ex, LY_EMEM);
+
+    /* revalidate the backward parent pointers from extensions */
+    LY_ARRAY_FOR(*extensions, u) {
+        LY_ARRAY_FOR((*extensions)[u].exts, v) {
+            (*extensions)[u].exts[v].parent = &(*extensions)[u];
+        }
+    }
 
     /* get value */
     LY_CHECK_RET(get_argument(ctx, Y_IDENTIF_ARG, NULL, &word, &buf, &word_len));
@@ -4196,8 +4221,16 @@ parse_deviation(struct lysp_yang_ctx *ctx, struct lysp_deviation **deviations)
     size_t word_len;
     enum ly_stmt kw;
     struct lysp_deviation *dev;
+    LY_ARRAY_COUNT_TYPE u, v;
 
     LY_ARRAY_NEW_RET(PARSER_CTX(ctx), *deviations, dev, LY_EMEM);
+
+    /* revalidate the backward parent pointers from extensions */
+    LY_ARRAY_FOR(*deviations, u) {
+        LY_ARRAY_FOR((*deviations)[u].exts, v) {
+            (*deviations)[u].exts[v].parent = &(*deviations)[u];
+        }
+    }
 
     /* get value */
     LY_CHECK_GOTO(ret = get_argument(ctx, Y_STR_ARG, NULL, &word, &buf, &word_len), cleanup);
@@ -4258,8 +4291,16 @@ parse_feature(struct lysp_yang_ctx *ctx, struct lysp_feature **features)
     size_t word_len;
     enum ly_stmt kw;
     struct lysp_feature *feat;
+    LY_ARRAY_COUNT_TYPE u, v;
 
     LY_ARRAY_NEW_RET(PARSER_CTX(ctx), *features, feat, LY_EMEM);
+
+    /* revalidate the backward parent pointers from extensions */
+    LY_ARRAY_FOR(*features, u) {
+        LY_ARRAY_FOR((*features)[u].exts, v) {
+            (*features)[u].exts[v].parent = &(*features)[u];
+        }
+    }
 
     /* get value */
     LY_CHECK_RET(get_argument(ctx, Y_IDENTIF_ARG, NULL, &word, &buf, &word_len));
@@ -4308,8 +4349,16 @@ parse_identity(struct lysp_yang_ctx *ctx, struct lysp_ident **identities)
     size_t word_len;
     enum ly_stmt kw;
     struct lysp_ident *ident;
+    LY_ARRAY_COUNT_TYPE u, v;
 
     LY_ARRAY_NEW_RET(PARSER_CTX(ctx), *identities, ident, LY_EMEM);
+
+    /* revalidate the backward parent pointers from extensions */
+    LY_ARRAY_FOR(*identities, u) {
+        LY_ARRAY_FOR((*identities)[u].exts, v) {
+            (*identities)[u].exts[v].parent = &(*identities)[u];
+        }
+    }
 
     /* get value */
     LY_CHECK_RET(get_argument(ctx, Y_IDENTIF_ARG, NULL, &word, &buf, &word_len));
